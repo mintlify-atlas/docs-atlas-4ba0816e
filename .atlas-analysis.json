@@ -1,0 +1,78 @@
+{
+  "projectType": "saas",
+  "projectName": "Cinemachine",
+  "projectDescription": "A creative storytelling platform that lets kids transform their toy play into animated movies with AI-powered video processing.",
+  "theme": "almond",
+  "primaryColor": "#FF6B6B",
+  "lightColor": "#FFB347",
+  "darkColor": "#D63031",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "how-it-works"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/toy-segmentation",
+              "features/background-generation",
+              "features/character-animation",
+              "features/voice-interaction"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/recording-tips",
+              "guides/story-creation",
+              "guides/best-practices"
+            ]
+          },
+          {
+            "group": "Technical Details",
+            "pages": [
+              "technical/pipeline-overview",
+              "technical/ai-models",
+              "technical/video-processing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Help & Support",
+            "pages": [
+              "resources/faq",
+              "resources/troubleshooting",
+              "resources/examples"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Fixed-camera toy segmentation with SAM2",
+    "AI-generated fantasy backgrounds with Nanobanana",
+    "Real-time voice-to-voice interaction with Gemini Live",
+    "Automated lip sync and character animation",
+    "Eyes and mouth overlay for bringing toys to life"
+  ],
+  "publicApiSurface": [
+    "Voice Agent (Gemini Live API)",
+    "Toy Segmentation Pipeline (SAM2/GroundingDINO)",
+    "Background Generation (Nanobanana Pro)",
+    "Lip Sync Module (Wav2Lip/SadTalker)",
+    "Video Compositing Engine"
+  ]
+}
