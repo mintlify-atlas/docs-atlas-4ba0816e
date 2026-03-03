@@ -1,0 +1,142 @@
+---
+title: Character animation
+description: Explore how Cinemachine brings toys to life with eyes, mouths, lip sync, and subtle body animation
+---
+
+## Bringing toys to life
+
+After segmenting your child's toy and compositing it onto a fantasy background, Cinemachine adds the magic that transforms a static toy into a living character: expressive eyes, a talking mouth, and subtle body movements that make the character feel alive.
+
+<Card title="Character animation pipeline" icon="wand-magic-sparkles">
+  Cinemachine applies three layers of animation: facial features (eyes and mouth), synchronized lip movement, and gentle body motion. Together, these create the illusion of a character truly present in the story.
+</Card>
+
+## Eyes and mouth overlay
+
+### Feature generation
+
+Using Nanobanana (the same image generation technology behind background creation), Cinemachine generates custom eyes and mouth designs that match your toy's aesthetic:
+
+- Eyes that complement the toy's style (cartoon, realistic, fantastical)
+- Mouth shapes appropriate for the character type
+- Visual consistency with the toy's existing colors and textures
+
+<Accordion title="Face area detection">
+  The system needs to know where to place eyes and mouth on the toy. This can happen in two ways:
+  
+  - **Voice-guided**: Your child can tell the voice agent where the face should be ("the face is at the top" or "the head is the round part")
+  - **Auto-detection**: The system analyzes the toy's shape to identify likely face areas
+  
+  This remains an open design question in the current implementation.
+</Accordion>
+
+### Position tracking
+
+As the toy moves through each frame, Cinemachine tracks where to place the facial features:
+
+1. The toy's position and orientation are calculated from segmentation data
+2. Eyes and mouth overlay positions are updated frame-by-frame
+3. Features stay properly aligned even as the toy rotates or moves
+
+<Info>
+  The overlay system ensures facial features move naturally with the toy, maintaining the illusion that they're part of the toy itself rather than floating elements.
+</Info>
+
+## Lip sync to audio
+
+One of the most engaging features is mouth movement that matches your child's recorded dialogue.
+
+### Audio-driven mouth shapes
+
+Cinemachine uses lip sync technology (similar to Wav2Lip or SadTalker) to:
+
+- Analyze the audio waveform and phonemes (speech sounds)
+- Generate appropriate mouth shapes for each sound
+- Sequence mouth movements to match the timing of speech
+- Blend mouth shapes smoothly for natural transitions
+
+### Synchronized dialogue
+
+The lip sync system processes your child's voice recording and creates mouth animations that:
+
+- Open and close in rhythm with speech
+- Form shapes corresponding to different sounds ("oo" vs "ee" vs "ah")
+- Stay closed during silence
+- React to audio energy (bigger movements for louder speech)
+
+<Note>
+  The current implementation keeps your child's original voice as the character's voice, preserving the authentic play experience. Whether to use generated character voices remains an open question.
+</Note>
+
+## Mild body animation
+
+Beyond facial animation, Cinemachine adds subtle body movements that make the toy feel alive without overwhelming the scene.
+
+### Squash and stretch
+
+Borrowed from classic animation principles, squash and stretch adds organic feel:
+
+- Slight vertical compression when the toy "lands" or settles
+- Gentle elongation during upward movement
+- Subtle deformation that maintains volume
+
+<Warning>
+  These effects are intentionally mild — the goal is to enhance believability, not to create exaggerated cartoon physics that might distract from the story.
+</Warning>
+
+### Breathing motion
+
+Even when the toy is stationary, tiny movements suggest life:
+
+- Gentle expansion and contraction mimicking breathing
+- Slow, rhythmic motion at a natural breathing pace
+- Subtle enough to be subconscious but effective at preventing a "frozen" look
+
+### Audio-reactive animation
+
+Body animation can respond to the character's voice:
+
+- **Bounce on speech**: Slight movement timed to speech energy
+- **Head tilt**: Minor rotation during emphasis or questions
+- **Gesture hints**: Small movements that suggest the character is actively speaking
+
+<Accordion title="How audio-reactive animation works">
+  The system analyzes the audio waveform to detect speech energy and emphasis. When the character speaks louder or with more emotion, the body animation becomes slightly more pronounced. This creates a natural connection between what the character says and how it moves.
+</Accordion>
+
+## Technical approach
+
+### Frame-by-frame overlay
+
+Eyes, mouth, and body effects are applied to each frame:
+
+```
+Segmented Toy Cutout
+        +
+Generated Eyes (tracked position)
+        +
+Lip-synced Mouth (tracked + animated)
+        +
+Body Deformation (squash/stretch/breathing)
+        =
+Animated Character Frame
+```
+
+### Optical flow for smoothness
+
+To ensure animations don't jitter or jump, Cinemachine uses:
+
+- Optical flow tracking for smooth feature placement
+- Frame interpolation for fluid motion
+- Temporal smoothing to reduce frame-to-frame variance
+
+## The final result
+
+With all animation layers combined, your child's toy becomes a fully realized character:
+
+- Expressive eyes that match the toy's personality
+- A mouth that speaks in sync with dialogue
+- Subtle body movements that suggest life and presence
+- Smooth, professional-looking animation throughout
+
+The combination of these techniques transforms raw play footage into a polished animated movie where toys truly come to life.

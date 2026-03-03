@@ -1,0 +1,260 @@
+---
+title: "Story creation"
+description: "Craft engaging stories with your toys using voice interaction, scene planning, and creative backgrounds"
+---
+
+## Planning your story
+
+Before you start recording, think about the story you want to tell. Even simple stories benefit from a bit of planning.
+
+### Start with a simple premise
+
+Great toy movies often have straightforward setups:
+
+- An adventure to find something (treasure, a lost friend)
+- A problem to solve (rescue mission, mystery)
+- A competition or challenge (race, talent show)
+- A day in the life of your toys
+
+<Tip>
+  Keep your first movie simple — 2-3 scenes with a clear beginning, middle, and end.
+</Tip>
+
+### Break your story into scenes
+
+Each scene should have:
+
+- **A location** — where is this happening? (forest, castle, playground)
+- **Characters** — which toys appear in this scene?
+- **Action** — what happens? (the hero finds a clue, friends argue, someone makes a discovery)
+- **Dialogue** — what do the characters say?
+
+<Steps>
+  <Step title="Write down your scene ideas">
+    Make a simple list of scenes. For example:
+    1. Superhero discovers a problem in the city
+    2. Superhero travels to the villain's castle
+    3. Final confrontation and victory
+  </Step>
+  
+  <Step title="Choose backgrounds for each scene">
+    Think about what setting matches each part of your story. You'll describe these to the voice agent later.
+  </Step>
+  
+  <Step title="Practice your dialogue">
+    Run through what each character will say. You can improvise, but knowing the general direction helps.
+  </Step>
+</Steps>
+
+## Using the voice agent effectively
+
+Cinemachine uses a voice agent powered by Gemini Live API to have a conversation with you about your story. This helps the system understand what backgrounds to generate and how to bring your toys to life.
+
+### How the voice conversation works
+
+The voice agent will ask you questions about:
+
+- What's happening in the story
+- Where the scene takes place
+- What kind of background you want
+- Details about your toys (what kind of eyes they should have, personality traits)
+
+<Note>
+  The voice agent listens and responds in real-time, making it feel like a natural conversation.
+</Note>
+
+### Describing backgrounds
+
+When the agent asks about your scene setting, be specific but concise:
+
+**Good descriptions:**
+- "A dark, spooky forest with tall trees and fog"
+- "A bright castle throne room with golden walls"
+- "A futuristic space station with glowing panels"
+- "An underwater scene with coral and bubbles"
+
+**Less helpful descriptions:**
+- "Somewhere outside" (too vague)
+- "Like in that movie with the thing" (agent can't see references)
+
+<Tip>
+  Include mood and atmosphere in your description. Words like "spooky," "cheerful," "mysterious," or "action-packed" help create the right feel.
+</Tip>
+
+### Describing your toy characters
+
+The voice agent helps determine:
+
+- **Eye style** — should they have big cartoon eyes, realistic eyes, or something else?
+- **Facial features** — what personality should the eyes convey? (friendly, fierce, curious)
+- **Animation style** — should the toy bounce energetically or move calmly?
+
+You can specify these details, or let the agent suggest options based on your toy type.
+
+## Choosing and generating backgrounds
+
+Cinemachine generates fantasy backgrounds using Nanobanana image generation. Your original room background is completely replaced.
+
+### One background per scene
+
+Backgrounds are generated once per scene and remain static:
+
+- This keeps processing fast and results consistent
+- If you want multiple backgrounds, record multiple scenes
+- The static background works because your camera is fixed — it looks natural
+
+### Background generation tips
+
+**Style consistency**
+
+If you're making a multi-scene movie, keep background styles consistent:
+
+- Same art style (realistic, cartoon, painterly)
+- Consistent color palette across scenes
+- Similar level of detail
+
+**Matching toy aesthetic**
+
+Consider how the background complements your toys:
+
+- Cartoon-style toys might look best with illustrated backgrounds
+- Realistic action figures might suit photorealistic or cinematic backgrounds
+- Mix and match to find what looks coolest to you
+
+<Warning>
+  Very busy or detailed backgrounds can sometimes distract from the toy action. Simpler backgrounds often work better.
+</Warning>
+
+## Managing multiple toys in a scene
+
+When you have multiple characters, coordination makes the story clearer.
+
+### Introducing characters
+
+Bring toys into the scene one at a time:
+
+1. Start with one toy and let Cinemachine track it
+2. Bring in the second toy
+3. Continue with additional toys if needed
+
+This helps the segmentation system track each toy separately.
+
+### Dialogue with multiple characters
+
+When characters talk to each other:
+
+- Move the speaking toy slightly (gestures, head movements)
+- Keep other toys relatively still
+- Change your voice for each character to distinguish them
+- Give each character time to "speak" before the next one responds
+
+<Tip>
+  Think of it like puppetry — one puppet moves and talks while others react and wait their turn.
+</Tip>
+
+### Action scenes with multiple toys
+
+For battles, chases, or group activities:
+
+- Move one toy at a time for clearer action
+- Use quick cuts between scenes if you need complex choreography
+- Remember that each toy is tracked separately, so overlapping movement is okay but trickier
+
+## Adding eyes and bringing toys to life
+
+Cinemachine adds eyes and mouths to your toys to make them expressive and alive.
+
+### Eye placement
+
+You can either:
+
+- Let the voice agent help detect where eyes should go
+- Specify the face area yourself during the conversation
+
+The eyes will track with the toy as it moves through each frame.
+
+### Lip sync and dialogue
+
+The system automatically syncs the toy's mouth to your recorded audio:
+
+- Mouth movements match your dialogue timing
+- The mouth opens and closes naturally with speech patterns
+- Non-speaking toys keep their mouths neutral
+
+<Note>
+  Lip sync is generated using audio analysis, so clear audio recording (see [Recording tips](/guides/recording-tips)) gives better results.
+</Note>
+
+### Body animation
+
+Subtle animations make toys feel more alive:
+
+- **Squash and stretch** — slight deformation as toys move, like in classic animation
+- **Breathing motion** — gentle movement when toys are still
+- **Speaking bounce** — toys bounce slightly when they talk, driven by audio energy
+
+These animations are automatic and subtle — they enhance without being distracting.
+
+## Story structure tips
+
+### The three-act structure
+
+Even short toy movies work well with this classic structure:
+
+**Act 1: Setup** (one scene)
+- Introduce characters and the situation
+- Establish the problem or goal
+
+**Act 2: Confrontation** (one or two scenes)
+- Characters face challenges
+- Action and conflict
+
+**Act 3: Resolution** (one scene)
+- Problem solved or goal achieved
+- Satisfying ending
+
+### Pacing your story
+
+Keep the energy moving:
+
+- Start scenes with action or interesting dialogue
+- Keep scenes focused on one main event
+- End scenes with a reason to continue (cliffhanger, question, discovery)
+
+<Tip>
+  If a scene feels slow, it might be too long. Try cutting it into two shorter scenes or removing unnecessary dialogue.
+</Tip>
+
+## Creative ideas to try
+
+### Genre mashups
+
+Mix different toy types for unexpected stories:
+
+- Dinosaurs in space
+- Superheroes in a medieval castle
+- Cars having a cooking competition
+
+### Series and sequels
+
+Once you've made one movie, continue the story:
+
+- Create episodic adventures with recurring characters
+- Build on previous events
+- Develop character relationships over time
+
+### Collaborative storytelling
+
+Work with friends or siblings:
+
+- Each person controls different toys
+- Take turns planning scenes
+- Combine different recording sessions into one movie
+
+## Next steps
+
+Learn more about getting the best results with Cinemachine:
+
+<Card title="Best practices" icon="star" href="/guides/best-practices">
+  Tips for toy selection, audio quality, handling edge cases, and creative ideas
+</Card>

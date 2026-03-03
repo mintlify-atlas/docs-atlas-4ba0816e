@@ -1,0 +1,72 @@
+---
+title: Toy segmentation
+description: Learn how Cinemachine uses SAM2 to cleanly separate toys from hands and backgrounds in fixed-camera footage
+---
+
+## How it works
+
+Cinemachine uses advanced computer vision to identify and extract toys from your child's play footage. The system leverages SAM2 (Segment Anything Model 2), a state-of-the-art segmentation model, to create clean cutouts of toys throughout the video.
+
+<Info>
+  **Key insight**: With a fixed camera setup, only the toys move. This simple constraint makes it possible to cleanly segment toys without the complex challenges of removing hands from the scene.
+</Info>
+
+## The fixed camera advantage
+
+Traditional video processing struggles with hand removal because it requires intelligently "filling in" what was behind the hand. Cinemachine eliminates this challenge entirely:
+
+- Instead of removing hands from the scene, we **segment only the toy** and discard everything else
+- The hand never makes it into the final frame
+- The background is generated fresh from scratch via image generation — no need to preserve the original
+
+<Card title="Why fixed camera matters" icon="camera">
+  When the camera is stationary, the background remains constant and only the toy moves through the scene. This allows the system to focus exclusively on tracking and extracting the toy, creating a clean separation between the subject and everything else.
+</Card>
+
+## Technical approach
+
+### Reference frame capture
+
+Before your child starts playing, the system captures a reference frame of the empty scene with no toys present. This baseline helps the segmentation model understand what's background and what's toy.
+
+### Toy tracking with SAM2
+
+SAM2 analyzes each frame to identify the toy and create a precise mask around it. The model tracks the toy's position and shape as it moves, maintaining clean separation throughout the video.
+
+<Accordion title="What is SAM2?">
+  SAM2 (Segment Anything Model 2) is a cutting-edge computer vision model developed by Meta AI. It can identify and segment objects in images and videos with remarkable accuracy, even handling complex shapes and overlapping elements.
+</Accordion>
+
+### Clean cutout extraction
+
+Once the toy is segmented, Cinemachine extracts only the toy pixels from each frame, along with position tracking data. This creates a clean cutout with:
+
+- No hands visible
+- No original background
+- Transparent or isolated edges
+- Frame-by-frame position information
+
+## Edge cases and quality
+
+<Warning>
+  **Overlapping fingers**: When fingers overlap with the toy body at contact points, the segmentation model may need additional refinement. The system uses mask erosion at hand-toy boundaries to ensure clean separation.
+</Warning>
+
+The segmentation quality is highest when:
+
+- The toy has a distinct color or texture from skin tones
+- The toy is fully visible in the frame
+- Lighting is consistent and adequate
+- The toy moves at a moderate pace
+
+## What happens next
+
+After segmentation, your clean toy cutouts move through the pipeline:
+
+1. **Background generation** — Fantasy worlds are created based on your child's story
+2. **Compositing** — Toys are placed into the new world
+3. **Animation** — Eyes, mouths, and subtle movements bring toys to life
+
+<Note>
+  The segmentation process happens automatically in the background. You don't need to manually select or mark the toys — just set up your fixed camera and let your child play!
+</Note>

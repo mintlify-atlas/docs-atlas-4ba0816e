@@ -1,0 +1,193 @@
+---
+title: Troubleshooting
+description: Solutions to common issues when creating animated movies with Cinemachine
+---
+
+## Segmentation issues
+
+### Toy segmentation is incomplete or inaccurate
+
+**Problem:** The AI isn't cleanly separating the toy from the background or hands.
+
+**Solutions:**
+
+<Tip>
+**Improve lighting** - Ensure the toy is well-lit with even lighting. Shadows and dark areas make segmentation harder.
+</Tip>
+
+- **Use high-contrast toys** - Toys that contrast sharply with skin tone are easier to segment
+- **Check the reference frame** - Make sure you captured a clean empty scene without the toy
+- **Avoid rapid movements** - Slower, deliberate toy movements help the tracking system
+- **Choose solid toys** - Toys with clear, solid bodies work better than those with many small parts
+
+### Fingers appear in the final video
+
+**Problem:** Parts of hands are showing up in the processed movie.
+
+<Warning>
+This typically happens at hand-toy contact points where fingers overlap the toy body.
+</Warning>
+
+**Solutions:**
+
+- **Adjust grip** - Hold the toy from behind or underneath where it's less visible
+- **Use mask refinement** - The system can apply mask erosion at hand-toy boundaries
+- **Re-record the scene** - Sometimes repositioning your hand placement resolves the issue
+- **Choose larger toys** - Bigger toys provide more surface area away from hand contact points
+
+### Multiple toys aren't tracked correctly
+
+**Problem:** When using multiple toys, the system confuses them or loses tracking.
+
+**Solutions:**
+
+- **Use distinctly different toys** - Vary colors, sizes, and shapes between toys
+- **Avoid overlapping toys** - Keep some space between characters when they interact
+- **Move one toy at a time** - For complex scenes, focus movement on one character per moment
+- **Specify toys at the start** - Clearly identify each toy in the voice agent setup
+
+## Background and compositing
+
+### Generated background doesn't match expectations
+
+**Problem:** The AI-generated fantasy background isn't what you envisioned.
+
+**Solutions:**
+
+<Tip>
+**Be specific with descriptions** - Instead of "outside", try "sunny forest with tall trees" or "sandy desert with pyramids".
+</Tip>
+
+- **Provide story context** - Share more details through the voice agent about the scene's mood and setting
+- **Request regeneration** - You can ask for a new background if the first doesn't fit
+- **Use consistent terminology** - Stick to clear, standard setting descriptions (castle, forest, space, ocean, etc.)
+
+### Toy edges look harsh against the background
+
+**Problem:** The composited toy has hard edges that don't blend naturally.
+
+**Solutions:**
+
+- **Check lighting** - Match your recording lighting to the intended scene mood
+- **Verify segmentation quality** - Poor segmentation creates rough edges
+- **Consider toy texture** - Very fuzzy or textured toys may need special handling
+- **Review the reference frame** - Ensure it's truly empty and matches recording conditions
+
+### Background appears inconsistent across frames
+
+**Problem:** The background seems to shift or change between frames.
+
+<Warning>
+Backgrounds should be generated once per scene and remain static. If you're seeing changes, there may be a processing issue.
+</Warning>
+
+**Solutions:**
+
+- **Verify scene boundaries** - Make sure the system knows which frames belong to the same scene
+- **Use one setting per recording** - Don't switch locations mid-recording
+- **Check for processing errors** - Review logs for background generation issues
+
+## Animation and lip sync
+
+### Lip sync doesn't match dialogue
+
+**Problem:** The toy's mouth movements are out of sync with the audio.
+
+**Solutions:**
+
+- **Check audio quality** - Clear, crisp dialogue helps the lip sync algorithm
+- **Speak at moderate pace** - Very fast or mumbled speech is harder to sync
+- **Position mouth correctly** - Ensure the mouth placement on the toy face is accurate
+- **Verify audio sync** - Make sure the original audio hasn't drifted from the video
+
+<Tip>
+Record in a quiet environment to help the system accurately detect speech patterns.
+</Tip>
+
+### Eyes or mouth appear in wrong position on toy
+
+**Problem:** Animated features don't line up with where they should be on the toy.
+
+**Solutions:**
+
+- **Manually specify face area** - Use the voice agent to tell the system where the face should be
+- **Choose toys with clear faces** - Toys with defined head shapes work better
+- **Keep toy orientation consistent** - Avoid flipping or rotating the toy dramatically
+- **Review tracking** - Check that the toy position tracking is accurate throughout
+
+### Animations look unnatural or too extreme
+
+**Problem:** Squash, stretch, or bounce effects are too pronounced.
+
+**Solutions:**
+
+- **Adjust animation intensity** - Parameters can be tuned for more subtle effects
+- **Match toy type** - Rigid toys should have less deformation than soft plush toys
+- **Review movement speed** - Very fast toy movements may trigger exaggerated responses
+
+## Recording and setup
+
+### Camera moves during recording
+
+**Problem:** The fixed camera shifted, invalidating the reference frame.
+
+<Warning>
+The fixed camera approach requires that the camera stays completely still throughout recording.
+</Warning>
+
+**Solutions:**
+
+- **Use a stable mount** - Tripod, phone stand, or secure positioning
+- **Mark the camera position** - Use tape to mark tripod leg positions
+- **Avoid bumping** - Keep the recording area clear of obstacles
+- **Re-record with new reference** - If the camera moved, capture a new reference frame and re-record
+
+### Poor video quality affects processing
+
+**Problem:** Blurry, dark, or low-resolution video creates processing issues.
+
+**Solutions:**
+
+- **Improve lighting** - Use natural light or add lamps to brighten the scene
+- **Check camera settings** - Use the highest quality your device supports
+- **Clean the lens** - Smudges and dirt reduce clarity
+- **Avoid backlighting** - Don't position toys in front of bright windows
+- **Use adequate resolution** - Higher resolution helps segmentation accuracy
+
+### Reference frame includes unwanted objects
+
+**Problem:** The "empty scene" reference frame has items in it.
+
+**Solutions:**
+
+- **Clear the entire scene** - Remove all toys, hands, and objects before capturing reference
+- **Verify the reference** - Review the reference frame before starting to record
+- **Retake if needed** - A clean reference frame is critical for good results
+
+## Performance
+
+### Processing takes too long
+
+**Problem:** Video processing is slower than expected.
+
+**Solutions:**
+
+<Tip>
+**Record shorter scenes** - Break your story into 30-60 second segments for faster processing.
+</Tip>
+
+- **Reduce frame rate** - Lower frame rates process faster while maintaining quality
+- **Simplify the scene** - Fewer toys and simpler movements reduce processing time
+- **Lower output resolution** - If appropriate, reduce the final video resolution
+- **Process during downtime** - Start processing before breaks or overnight
+
+### System runs out of memory
+
+**Problem:** Processing fails due to insufficient memory.
+
+**Solutions:**
+
+- **Close other applications** - Free up system resources
+- **Process shorter clips** - Break long videos into smaller segments
+- **Reduce video resolution** - Lower resolution requires less memory
+- **Check system requirements** - Ensure your device meets minimum specifications

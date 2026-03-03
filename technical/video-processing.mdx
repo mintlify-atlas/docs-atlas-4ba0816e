@@ -1,0 +1,572 @@
+---
+title: Video processing
+description: Technical details on video processing, segmentation refinement, compositing, and tracking
+---
+
+This page covers the technical challenges and solutions in Cinemachine's video processing pipeline, from handling hand-toy contact points to maintaining frame-to-frame consistency.
+
+## Toy segmentation challenges
+
+Clean toy segmentation is fundamental to the entire pipeline. The primary challenge is separating toys from hands at contact points.
+
+### Hand-toy contact points
+
+**The core problem:**
+
+When fingers overlap or grip the toy, segmentation models can:
+- Include parts of the hand in the toy mask ("mask leakage")
+- Exclude parts of the toy that are occluded by hands
+- Create jagged edges at contact boundaries
+
+<Warning>
+SAM2 needs to cleanly separate toy from hand at contact points. Fingers overlapping the toy body are critical edge cases requiring special handling.
+</Warning>
+
+**Solution approaches:**
+
+<Steps>
+
+### Initial segmentation with SAM2
+
+Start with SAM2's temporal tracking for base segmentation:
+
+```python
+# Initialize SAM2 on toy (avoiding hand contact areas)
+predictor.add_new_points(
+    frame_idx=0,
+    obj_id=1,
+    points=[[toy_center_x, toy_center_y]],  # Point on toy body, away from edges
+    labels=[1]
+)
+
+# Add negative points on visible hands
+predictor.add_new_points(
+    frame_idx=0,
+    obj_id=1,
+    points=[[hand_x, hand_y]],
+    labels=[0]  # Explicitly exclude hands
+)
+```
+
+### Mask refinement pipeline
+
+Apply post-processing to clean up contact boundaries:
+
+```python
+import cv2
+import numpy as np
+
+def refine_toy_mask(mask, frame, erosion_kernel_size=3):
+    """
+    Refine mask to handle hand-toy boundaries
+    """
+    # Erode mask slightly at boundaries to remove hand pixels
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, 
+        (erosion_kernel_size, erosion_kernel_size)
+    )
+    eroded_mask = cv2.erode(mask, kernel, iterations=1)
+    
+    # Optional: Use color/texture to refine boundary
+    # Hands typically have different color than toys
+    hand_color_mask = detect_skin_color(frame)
+    refined_mask = eroded_mask & ~hand_color_mask
+    
+    # Smooth edges
+    refined_mask = cv2.GaussianBlur(
+        refined_mask.astype(float), 
+        (5, 5), 
+        0
+    ) > 0.5
+    
+    return refined_mask
+```
+
+### Temporal consistency checks
+
+Use optical flow to verify mask consistency:
+
+```python
+def enforce_temporal_consistency(masks, frames):
+    """
+    Ensure masks remain consistent across frames
+    """
+    consistent_masks = [masks[0]]
+    
+    for i in range(1, len(masks)):
+        # Calculate optical flow from previous frame
+        flow = cv2.calcOpticalFlowFarneback(
+            cv2.cvtColor(frames[i-1], cv2.COLOR_BGR2GRAY),
+            cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY),
+            None, 0.5, 3, 15, 3, 5, 1.2, 0
+        )
+        
+        # Warp previous mask using flow
+        h, w = masks[i].shape
+        flow_map = np.column_stack([
+            (np.arange(w) + flow[:,:,0].flatten()).flatten(),
+            (np.arange(h) + flow[:,:,1].flatten()).flatten()
+        ])
+        
+        warped_mask = cv2.remap(
+            consistent_masks[-1],
+            flow_map.reshape(h, w, 2),
+            None,
+            cv2.INTER_LINEAR
+        )
+        
+        # Blend with current mask for consistency
+        blended_mask = 0.7 * masks[i] + 0.3 * warped_mask
+        consistent_masks.append(blended_mask > 0.5)
+    
+    return consistent_masks
+```
+
+</Steps>
+
+### Mask erosion strategies
+
+Different erosion approaches for different scenarios:
+
+| Scenario | Erosion Strategy | Kernel Size |
+|---|---|---|
+| Light finger touch | Minimal erosion | 1-2 pixels |
+| Full hand grip | Moderate erosion | 3-5 pixels |
+| Multiple contact points | Aggressive erosion + color filtering | 5-7 pixels |
+| Moving toy | Temporal smoothing priority | 2-3 pixels |
+
+<Info>
+Erosion removes pixels from mask boundaries. Too much erosion can cut into the toy itself, so careful tuning is required.
+</Info>
+
+## Background generation and compositing
+
+With clean toy cutouts, the next challenge is realistic compositing onto generated backgrounds.
+
+### One-shot background generation
+
+Background is generated once per scene using story context:
+
+```python
+def generate_scene_background(story_context, voice_agent_description):
+    """
+    Generate static background for entire scene
+    """
+    # Voice agent provides setting description
+    prompt = f"""
+    Create a {voice_agent_description} background for a children's animated movie.
+    Style: Colorful, child-friendly, animated film aesthetic.
+    Composition: Leave center area clear for character placement.
+    Lighting: Bright and welcoming.
+    Details: {story_context}
+    """
+    
+    background = nanobanana_pro.generate(
+        prompt=prompt,
+        width=1920,
+        height=1080,
+        style="children_animation",
+        quality="high"
+    )
+    
+    return background
+```
+
+**Why static backgrounds work:**
+- No temporal consistency issues (no flickering)
+- Single generation cost per scene
+- Predictable, reliable output
+- Toy movement provides all the motion needed
+
+### Compositing toy onto background
+
+**Alpha compositing with lighting adjustments:**
+
+```python
+def composite_toy_on_background(toy_cutout, toy_mask, background, position):
+    """
+    Composite toy onto generated background with lighting match
+    """
+    x, y = position
+    h, w = toy_cutout.shape[:2]
+    
+    # Extract background region
+    bg_region = background[y:y+h, x:x+w]
+    
+    # Analyze background lighting at this position
+    bg_brightness = np.mean(cv2.cvtColor(bg_region, cv2.COLOR_BGR2GRAY))
+    toy_brightness = np.mean(cv2.cvtColor(toy_cutout, cv2.COLOR_BGR2GRAY))
+    
+    # Adjust toy lighting to match background
+    brightness_ratio = bg_brightness / (toy_brightness + 1e-6)
+    adjusted_toy = toy_cutout * brightness_ratio
+    adjusted_toy = np.clip(adjusted_toy, 0, 255).astype(np.uint8)
+    
+    # Feather mask edges for smooth blending
+    feathered_mask = cv2.GaussianBlur(
+        toy_mask.astype(float), 
+        (7, 7), 
+        2.0
+    )
+    
+    # Alpha composite
+    alpha = feathered_mask[:, :, np.newaxis]
+    composited_region = (
+        adjusted_toy * alpha + 
+        bg_region * (1 - alpha)
+    ).astype(np.uint8)
+    
+    # Place back in full frame
+    output = background.copy()
+    output[y:y+h, x:x+w] = composited_region
+    
+    return output
+```
+
+**Compositing quality factors:**
+- Edge feathering prevents hard cutout appearance
+- Lighting adjustment for realistic integration
+- Color temperature matching
+- Shadow generation (future enhancement)
+
+<Note>
+Feathering the mask edges by 3-7 pixels creates a smooth transition that looks more natural than hard-edged cutouts.
+</Note>
+
+## Eyes and mouth tracking
+
+Tracking facial feature placement as toys move through the scene.
+
+### Face area detection
+
+Determining where to place eyes and mouth on the toy:
+
+**Option 1: Voice-guided placement**
+
+```python
+def get_face_placement_from_voice(toy_cutout, voice_agent):
+    """
+    Let kid specify face location via voice interaction
+    """
+    # Show toy to kid
+    display_toy_preview(toy_cutout)
+    
+    # Voice agent asks: "Where should I put the eyes? Top, middle, or bottom?"
+    vertical_position = voice_agent.get_response(
+        "Where should the eyes go - at the top, middle, or bottom of your toy?"
+    )
+    
+    # Simple mapping to coordinates
+    face_region = {
+        "top": (0.2, 0.3),      # (y_start, y_end) as fraction of height
+        "middle": (0.4, 0.6),
+        "bottom": (0.6, 0.8)
+    }[vertical_position]
+    
+    return face_region
+```
+
+**Option 2: Automatic detection**
+
+```python
+def auto_detect_face_area(toy_cutout, toy_mask):
+    """
+    Attempt to find likely face area on toy
+    """
+    # Find contours to get toy shape
+    contours, _ = cv2.findContours(
+        toy_mask, 
+        cv2.RETR_EXTERNAL, 
+        cv2.CHAIN_APPROX_SIMPLE
+    )
+    
+    if len(contours) == 0:
+        return None
+    
+    # Get bounding box
+    x, y, w, h = cv2.boundingRect(contours[0])
+    
+    # Heuristic: Face is typically in upper-middle third
+    # (works for humanoid toys, animals)
+    face_y = y + int(h * 0.25)
+    face_height = int(h * 0.35)
+    face_x = x + int(w * 0.3)
+    face_width = int(w * 0.4)
+    
+    return (face_x, face_y, face_width, face_height)
+```
+
+**Hybrid approach (recommended):**
+- Auto-detect as initial suggestion
+- Voice agent confirms or allows adjustment
+- User has final control
+
+### Tracking eyes and mouth across frames
+
+Once face location is established, track it through toy movement:
+
+```python
+class FaceFeatureTracker:
+    def __init__(self, initial_face_region, initial_toy_mask):
+        self.face_offset = self.calculate_offset_from_toy_center(
+            initial_face_region, 
+            initial_toy_mask
+        )
+    
+    def calculate_offset_from_toy_center(self, face_region, toy_mask):
+        """Calculate face position relative to toy center"""
+        # Get toy center of mass
+        M = cv2.moments(toy_mask)
+        toy_cx = int(M['m10'] / (M['m00'] + 1e-6))
+        toy_cy = int(M['m01'] / (M['m00'] + 1e-6))
+        
+        face_x, face_y, face_w, face_h = face_region
+        face_cx = face_x + face_w // 2
+        face_cy = face_y + face_h // 2
+        
+        return (face_cx - toy_cx, face_cy - toy_cy)
+    
+    def track_face_position(self, toy_mask):
+        """Get face position in current frame based on toy position"""
+        # Find current toy center
+        M = cv2.moments(toy_mask)
+        toy_cx = int(M['m10'] / (M['m00'] + 1e-6))
+        toy_cy = int(M['m01'] / (M['m00'] + 1e-6))
+        
+        # Apply offset to get face position
+        face_cx = toy_cx + self.face_offset[0]
+        face_cy = toy_cy + self.face_offset[1]
+        
+        return (face_cx, face_cy)
+```
+
+**Tracking considerations:**
+- Toy rotation changes relative feature positions
+- Optical flow can provide additional motion hints
+- Temporal smoothing prevents jittery placement
+
+### Overlay rendering
+
+```python
+def render_eyes_and_mouth(frame, eye_images, mouth_image, face_position):
+    """
+    Overlay eyes and mouth onto frame
+    """
+    face_cx, face_cy = face_position
+    
+    # Position eyes
+    eye_spacing = 30  # pixels between eyes
+    left_eye_pos = (face_cx - eye_spacing, face_cy - 10)
+    right_eye_pos = (face_cx + eye_spacing, face_cy - 10)
+    
+    frame = overlay_image_alpha(frame, eye_images['left'], left_eye_pos)
+    frame = overlay_image_alpha(frame, eye_images['right'], right_eye_pos)
+    
+    # Position mouth (below eyes)
+    mouth_pos = (face_cx, face_cy + 25)
+    frame = overlay_image_alpha(frame, mouth_image, mouth_pos)
+    
+    return frame
+
+def overlay_image_alpha(background, overlay, position):
+    """Alpha blend overlay onto background"""
+    x, y = position
+    h, w = overlay.shape[:2]
+    
+    # Extract alpha channel
+    if overlay.shape[2] == 4:
+        alpha = overlay[:, :, 3] / 255.0
+        overlay_rgb = overlay[:, :, :3]
+    else:
+        alpha = np.ones((h, w))
+        overlay_rgb = overlay
+    
+    # Blend
+    bg_region = background[y:y+h, x:x+w]
+    blended = (
+        overlay_rgb * alpha[:, :, np.newaxis] +
+        bg_region * (1 - alpha[:, :, np.newaxis])
+    )
+    
+    background[y:y+h, x:x+w] = blended.astype(np.uint8)
+    return background
+```
+
+## Frame-to-frame consistency
+
+Maintaining temporal coherence across all processing stages.
+
+### Consistency challenges
+
+**Sources of inconsistency:**
+- Segmentation mask variation between frames
+- Eye/mouth tracking jitter
+- Lighting adjustments creating flicker
+- Lip sync transitions that are too abrupt
+
+### Temporal smoothing strategies
+
+**Exponential moving average for positions:**
+
+```python
+class TemporalSmoother:
+    def __init__(self, alpha=0.3):
+        self.alpha = alpha  # Smoothing factor (0-1)
+        self.prev_value = None
+    
+    def smooth(self, current_value):
+        if self.prev_value is None:
+            self.prev_value = current_value
+            return current_value
+        
+        # Exponential moving average
+        smoothed = (
+            self.alpha * current_value + 
+            (1 - self.alpha) * self.prev_value
+        )
+        self.prev_value = smoothed
+        return smoothed
+
+# Usage for eye tracking
+eye_position_smoother = TemporalSmoother(alpha=0.3)
+
+for frame in frames:
+    raw_eye_pos = tracker.track_face_position(frame)
+    smooth_eye_pos = eye_position_smoother.smooth(raw_eye_pos)
+    render_eyes(frame, smooth_eye_pos)
+```
+
+**Optical flow for motion compensation:**
+
+```python
+def motion_compensated_overlay(current_frame, overlay, prev_frame, prev_overlay_pos):
+    """
+    Use optical flow to predict overlay position
+    """
+    # Calculate flow from previous to current frame
+    flow = cv2.calcOpticalFlowFarneback(
+        cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY),
+        cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY),
+        None, 0.5, 3, 15, 3, 5, 1.2, 0
+    )
+    
+    # Sample flow at previous overlay position
+    prev_x, prev_y = prev_overlay_pos
+    motion_vector = flow[prev_y, prev_x]
+    
+    # Predict new position
+    predicted_pos = (
+        prev_x + int(motion_vector[0]),
+        prev_y + int(motion_vector[1])
+    )
+    
+    return predicted_pos
+```
+
+**Mask temporal filtering:**
+
+```python
+def temporal_mask_filter(masks, window_size=5):
+    """
+    Apply median filter across time to remove mask jitter
+    """
+    filtered_masks = []
+    
+    for i in range(len(masks)):
+        # Get window of masks around current frame
+        start = max(0, i - window_size // 2)
+        end = min(len(masks), i + window_size // 2 + 1)
+        window = masks[start:end]
+        
+        # Median filter (take majority vote per pixel)
+        stacked = np.stack(window, axis=0)
+        median_mask = np.median(stacked, axis=0) > 0.5
+        
+        filtered_masks.append(median_mask)
+    
+    return filtered_masks
+```
+
+## Performance optimization
+
+Processing video in real-time or near-real-time requires optimization.
+
+### Batching strategies
+
+```python
+def batch_process_frames(frames, batch_size=8):
+    """
+    Process frames in batches for GPU efficiency
+    """
+    results = []
+    
+    for i in range(0, len(frames), batch_size):
+        batch = frames[i:i+batch_size]
+        
+        # Batch processing on GPU
+        with torch.no_grad():
+            batch_tensor = torch.stack([
+                frame_to_tensor(f) for f in batch
+            ]).cuda()
+            
+            batch_results = model(batch_tensor)
+            results.extend(batch_results)
+    
+    return results
+```
+
+### Resolution scaling
+
+```python
+# Process at lower resolution, upscale for final output
+processing_scale = 0.5  # Process at 50% resolution
+
+small_frame = cv2.resize(frame, None, fx=processing_scale, fy=processing_scale)
+mask = segment_toy(small_frame)
+mask_full = cv2.resize(mask, (frame.shape[1], frame.shape[0]))
+```
+
+### Caching strategies
+
+- Cache background (generated once)
+- Cache eye/mouth images (reused across frames)
+- Cache segmentation results for scrubbing
+- Precompute lighting maps
+
+<Info>
+Effective caching can reduce processing time by 60-70% for typical scenes.
+</Info>
+
+## Quality metrics
+
+Measuring processing quality:
+
+```python
+def calculate_quality_metrics(original_frames, processed_frames, masks):
+    """
+    Compute quality metrics for video processing
+    """
+    metrics = {
+        'mask_stability': calculate_mask_stability(masks),
+        'temporal_consistency': calculate_temporal_consistency(processed_frames),
+        'edge_quality': calculate_edge_quality(masks),
+        'compositing_quality': calculate_compositing_quality(processed_frames)
+    }
+    return metrics
+
+def calculate_mask_stability(masks):
+    """Measure how stable masks are frame-to-frame"""
+    iou_scores = []
+    for i in range(1, len(masks)):
+        intersection = np.logical_and(masks[i-1], masks[i]).sum()
+        union = np.logical_or(masks[i-1], masks[i]).sum()
+        iou = intersection / (union + 1e-6)
+        iou_scores.append(iou)
+    return np.mean(iou_scores)
+```
+
+**Target quality benchmarks:**
+- Mask stability (IoU): > 0.95
+- Edge smoothness: < 2 pixel jitter
+- Temporal consistency (SSIM): > 0.9
+- Processing speed: < 2 seconds per frame

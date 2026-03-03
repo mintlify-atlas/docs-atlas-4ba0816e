@@ -1,0 +1,176 @@
+---
+title: Voice interaction
+description: Learn how Cinemachine uses the Gemini Live API for natural conversations about your child's story
+---
+
+## Conversational storytelling
+
+Cinemachine uses voice-to-voice interaction to understand your child's creative vision. Rather than filling out forms or selecting from menus, kids simply talk to the system about their story — what's happening, where it takes place, and what they want to create.
+
+<Card title="Powered by Gemini Live" icon="microphone">
+  Cinemachine integrates the Gemini Live API for real-time, natural voice conversations. The system understands context, asks clarifying questions, and helps shape your child's ideas into a finished movie.
+</Card>
+
+## How it works
+
+### Gemini Live API integration
+
+The Gemini Live API provides real-time voice interaction capabilities:
+
+- **Voice-to-voice**: Kids speak naturally and receive spoken responses
+- **Real-time processing**: No waiting between question and answer
+- **Contextual understanding**: The system remembers what was said earlier
+- **Natural dialogue flow**: Conversations feel organic, not scripted
+
+<Info>
+  Unlike traditional voice assistants that process one command at a time, Gemini Live maintains conversational context throughout the entire movie creation process.
+</Info>
+
+### Understanding story context
+
+Through conversation, the voice agent gathers crucial information:
+
+**Setting and world**
+- Where does the story take place? (forest, castle, space, etc.)
+- What's the mood? (adventurous, mysterious, cheerful)
+- What time of day is it?
+
+**Character details**
+- Who is the toy supposed to be?
+- What personality does it have?
+- How should it sound and move?
+
+**Narrative flow**
+- What happens in the story?
+- When do scenes change?
+- What's the beginning, middle, and end?
+
+<Accordion title="Example conversation flow">
+  **System**: "Hi! I'm excited to help you make a movie with your toy. What kind of adventure are we creating today?"
+  
+  **Child**: "My dinosaur is going to explore a jungle and find treasure!"
+  
+  **System**: "A jungle adventure — awesome! Is it a bright, sunny jungle or a dark, mysterious one?"
+  
+  **Child**: "It's sunny and there are lots of big trees."
+  
+  **System**: "Perfect! And when your dinosaur finds the treasure, what happens next?"
+  
+  This natural back-and-forth helps the system understand exactly what to generate.
+</Accordion>
+
+## Contextual intelligence
+
+The voice agent doesn't just collect information — it understands how different elements connect:
+
+### Scene detection
+
+By listening to your child's story, the system identifies when scenes change:
+
+- "First they're in the jungle, then they go into a cave"
+- "After that, they fly to the castle"
+- "At night, they go to sleep under the stars"
+
+Each scene change triggers a new background generation, creating visual chapters in the story.
+
+### Feature placement guidance
+
+The voice agent can ask about and remember character details:
+
+- "Where should the eyes be on your dinosaur?"
+- "Does your character have a big mouth or a small mouth?"
+- "Should the face be at the top or in the middle?"
+
+<Note>
+  Whether face placement is voice-guided or auto-detected remains an open design question, but the conversational interface makes it easy to gather this information when needed.
+</Note>
+
+### Iterative refinement
+
+If something isn't clear, the voice agent asks follow-up questions:
+
+- "You mentioned a castle — is it a big stone castle or a magical floating one?"
+- "Should the forest have any special features like waterfalls or flowers?"
+- "Is your character brave or scared in this scene?"
+
+## Technical implementation
+
+### Real-time voice processing
+
+The Gemini Live API handles:
+
+1. **Speech recognition**: Converting your child's words to text
+2. **Natural language understanding**: Extracting meaning and intent
+3. **Context management**: Maintaining conversation history
+4. **Response generation**: Creating appropriate, context-aware replies
+5. **Text-to-speech**: Speaking responses in a natural voice
+
+### Integration with the pipeline
+
+Information from voice conversations directly drives other systems:
+
+```
+Voice Conversation
+        │
+        ├──> Background Generation (setting details)
+        ├──> Character Animation (personality traits)
+        ├──> Scene Segmentation (narrative structure)
+        └──> Feature Placement (face location, style)
+```
+
+<Warning>
+  **Privacy note**: Voice interactions should be processed with appropriate privacy protections. Parents should understand how voice data is used and stored in the system.
+</Warning>
+
+## Benefits for creative expression
+
+Voice interaction makes Cinemachine accessible to young children who:
+
+- Can't type or use complex software interfaces
+- Think in stories, not technical parameters
+- Want to focus on creativity, not configuration
+- Benefit from guided prompts and questions
+
+### Natural for kids
+
+Young children are already experts at voice interaction — they talk all the time during play. Cinemachine meets them where they are, turning play narration into movie direction.
+
+### Guided creativity
+
+The voice agent acts as a creative partner:
+
+- Suggests ideas when kids are stuck
+- Asks questions that spark imagination
+- Helps structure stories with beginning, middle, and end
+- Validates and encourages creative choices
+
+<Card title="Learning through storytelling" icon="book">
+  The conversational process itself is educational. Kids practice narrative structure, descriptive language, and creative problem-solving — all while thinking they're just playing and making a movie.
+</Card>
+
+## Open questions
+
+The voice interaction system continues to evolve:
+
+- **Voice preservation**: Should the final movie use your child's original voice, or generate character voices?
+- **Multi-character scenes**: How should the conversation handle multiple toys in one scene?
+- **Director mode**: Could kids give real-time direction during recording ("now pan left", "zoom in")?
+- **Collaboration**: Could multiple kids work on one story together through voice?
+
+## The user experience
+
+From a parent's perspective, voice interaction means:
+
+- No learning curve for software interfaces
+- Natural integration with how kids already play
+- Minimal screen time (kids talk instead of tapping)
+- Documentation of storytelling and language development
+
+From a child's perspective:
+
+- Talking to a friendly creative assistant
+- Being heard and understood
+- Seeing their ideas come to life
+- Making real movies like the "grown-ups" do
+
+Voice interaction is the bridge between imagination and creation — the invisible interface that makes Cinemachine feel like magic.

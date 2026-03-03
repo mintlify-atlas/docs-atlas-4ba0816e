@@ -1,0 +1,205 @@
+---
+title: Pipeline overview
+description: Complete technical pipeline from video capture to final animated movie output
+---
+
+Cinemachine transforms raw toy play footage into animated movies through a sophisticated video processing pipeline. This page details each stage of the technical pipeline.
+
+## Pipeline architecture
+
+The complete pipeline processes fixed camera footage through multiple AI-powered stages:
+
+```
+Fixed Camera Shot
+        │
+        ▼
+ Reference Frame (empty scene, no toys — captured once)
+        │
+        ▼
+ Segment Toy Only (SAM2 tracks the toy, hands excluded from mask)
+        │
+        ▼
+ Extract Toy Cutout + Track Position (clean toy pixels, no hands, no BG)
+        │
+        ▼
+ Generate World BG (Nanobanana generates fantasy world, once per scene,
+                     based on story context from voice agent)
+        │
+        ▼
+ Composite Toy onto New World
+   + Add eyes/mouth (overlay, tracked to toy position)
+   + Lip sync mouth to audio
+   + Mild body animation (squash/stretch, bounce)
+        │
+        ▼
+ Final Movie
+```
+
+## Key insight: Fixed camera simplification
+
+The fixed camera approach eliminates the most challenging technical problem in traditional video editing:
+
+<Note>
+With a fixed camera, only the toys move. This allows us to **segment only the toy** and discard everything else, rather than attempting complex hand inpainting.
+</Note>
+
+**Why this matters:**
+- The hand never makes it into the final frame
+- No need for expensive inpainting models
+- Background is generated fresh from scratch via image generation
+- No requirement to preserve or reconstruct the original background
+
+## Pipeline stages
+
+<Steps>
+
+### Capture fixed camera shot
+
+The user records toy play with a stationary camera. The fixed camera position is critical to the entire pipeline's success.
+
+**Requirements:**
+- Camera must remain completely stationary
+- Consistent lighting throughout the recording
+- Clear view of the toy movement area
+
+### Record reference frame
+
+Before toy play begins, capture a reference frame of the empty scene with no toys present. This reference frame is used to:
+
+- Establish the baseline background
+- Assist in segmentation by providing a clean reference
+- Enable background subtraction techniques if needed
+
+<Info>
+The reference frame is captured **once** at the beginning of each scene.
+</Info>
+
+### Segment toy with SAM2
+
+Using SAM2 (Segment Anything Model 2), the system tracks and segments the toy across all frames:
+
+- SAM2 isolates the toy from hands and background
+- Tracking maintains consistent segmentation frame-to-frame
+- Hands are explicitly excluded from the segmentation mask
+
+**Challenge:** Contact points between hands and toys require careful mask refinement. See [video processing](/technical/video-processing) for details on handling edge cases.
+
+### Extract toy cutout and track position
+
+Once segmented, the system extracts clean toy pixels:
+
+- Pure toy imagery with alpha channel
+- No hands, no background
+- Position tracking for frame-to-frame consistency
+
+### Generate fantasy background
+
+Nanobanana Pro generates a new fantasy world background based on story context:
+
+- Voice agent determines the setting ("forest", "castle", "space station")
+- Background is generated **once per scene**
+- Static background eliminates temporal consistency issues
+
+<Note>
+Because the background is static, there are no temporal consistency challenges common in video-to-video generation.
+</Note>
+
+### Composite toy onto new world
+
+The extracted toy cutout is composited onto the generated background:
+
+- Alpha blending for smooth integration
+- Position tracking from segmentation stage
+- Lighting and color adjustments for realistic composition
+
+### Add eyes and mouth overlay
+
+To bring toys to life, eyes and mouth are overlaid onto the toy:
+
+- Eyes and mouth style generated to match toy aesthetic
+- Placement tracked as toy moves frame-to-frame
+- Face area detection (or user-specified via voice agent)
+
+### Apply lip sync
+
+Mouth animation is synchronized to the audio dialogue:
+
+- Audio analysis extracts phoneme timing
+- Mouth shapes generated for each phoneme
+- Smooth transitions between mouth positions
+
+See [AI models](/technical/ai-models) for details on lip sync technology options.
+
+### Add body animation
+
+Subtle animations enhance the feeling of life:
+
+- Squash/stretch on toy cutout
+- Breathing motion, head tilt
+- Bounce driven by audio energy (responds when speaking)
+
+<Info>
+Body animations are intentionally subtle to maintain believability while adding character.
+</Info>
+
+### Render final movie
+
+All layers are composited together and rendered to final video:
+
+- Generated background layer
+- Toy cutout with position tracking
+- Eyes and mouth overlays with lip sync
+- Body animation effects
+- Audio track with original dialogue
+
+</Steps>
+
+## MVP build order
+
+The recommended implementation sequence prioritizes core functionality:
+
+1. **Fixed camera + toy segmentation** — Get clean cutouts working
+2. **Background generation** — Composite toy onto a generated world
+3. **Voice agent** — Conversational flow to get story context
+4. **Eyes + mouth overlay** — Bring the toy to life
+5. **Lip sync + body animation** — Polish and refinement
+
+## Open questions
+
+Several technical decisions remain under investigation:
+
+<Accordion title="How to handle multiple toys in one scene?">
+Tracking multiple toys simultaneously introduces complexity:
+- Each toy needs independent segmentation and tracking
+- Occlusion handling when toys overlap
+- Multiple eye/mouth overlays to manage
+- Increased computational requirements
+</Accordion>
+
+<Accordion title="Should the kid specify toy face location, or auto-detect?">
+Two approaches under consideration:
+- **Voice specification:** Kid tells the voice agent where to place features
+- **Auto-detection:** Computer vision detects likely face area on toy
+- Hybrid approach may provide best user experience
+</Accordion>
+
+<Accordion title="What resolution and frame rate for output?">
+Balancing quality with processing time:
+- Higher resolution = better quality but slower processing
+- Frame rate affects smoothness of animation
+- Target platform (web, mobile, TV) influences requirements
+</Accordion>
+
+<Accordion title="How long should a typical movie be?">
+Movie length directly impacts processing time:
+- Longer movies = more frames to process
+- Need to balance creative freedom with practical constraints
+- Consider chapter/scene-based approach for longer stories
+</Accordion>
+
+<Accordion title="Audio: Keep kid's voice or generate character voices?">
+Two audio strategies possible:
+- **Preserve original:** Keep the child's voice for authenticity
+- **Character voices:** Generate voices matching character personalities
+- May offer both as options to users
+</Accordion>

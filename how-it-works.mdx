@@ -1,0 +1,178 @@
+---
+title: How it works
+description: Understand the AI pipeline that transforms toy play into animated movies
+---
+
+## The Cinemachine pipeline
+
+Cinemachine uses a sophisticated AI pipeline to transform raw video of toy play into polished animated movies. Here's how each step works, explained in plain language.
+
+## Fixed camera foundation
+
+The entire system is built on a simple but powerful insight: **with a fixed camera, only the toys move**.
+
+This seemingly simple choice eliminates the hardest technical challenge in video editing. Instead of trying to remove hands from a scene while preserving the original background, Cinemachine:
+
+- Segments only the toy and discards everything else (hands, background, furniture)
+- Generates a brand new fantasy background from scratch
+- Composites the clean toy cutout onto the new world
+
+<Info>
+  This fixed camera approach means no complex hand inpainting, no background preservation issues, and cleaner results overall.
+</Info>
+
+## Pipeline stages
+
+<Steps>
+  <Step title="Video recording">
+    The process starts when a child records themselves playing with a toy using a fixed camera. Before recording begins, Cinemachine captures a **reference frame** of the empty scene.
+    
+    **What happens:**
+    - Fixed camera captures video at consistent framing
+    - Child holds and moves toy while speaking dialogue
+    - Hands appear in frame (this is expected and fine)
+    - Audio is recorded simultaneously
+  </Step>
+  
+  <Step title="Toy segmentation">
+    Cinemachine uses **SAM2** (Segment Anything Model 2) to identify and track the toy across all video frames.
+    
+    **What happens:**
+    - SAM2 creates a precise mask of just the toy pixels
+    - Hands touching the toy are excluded from the mask
+    - The toy is tracked frame-by-frame as it moves
+    - Clean toy cutout is extracted (no hands, no background)
+    
+    **Why this works:** The reference frame helps the system know what's background and what's new (the toy). SAM2's advanced segmentation can distinguish between the toy and hands, even at contact points.
+    
+    <Note>
+      SAM2 is trained on millions of images and can accurately separate objects even in complex scenes. It understands the difference between a hand holding something and the object itself.
+    </Note>
+  </Step>
+  
+  <Step title="Story understanding with voice agent">
+    A voice-to-voice conversation with the child determines what kind of world to create. This uses the **Gemini Live API** for natural, real-time conversation.
+    
+    **What happens:**
+    - Child describes the story and setting through voice
+    - AI agent asks clarifying questions
+    - System builds context: "forest setting," "magical theme," "daytime," etc.
+    - This context drives the next generation step
+    
+    **Example conversation:**
+    - Agent: "Where is this adventure taking place?"
+    - Child: "In a castle!"
+    - Agent: "What kind of castle? Old and spooky or grand and royal?"
+    - Child: "A grand royal castle with towers and flags!"
+  </Step>
+  
+  <Step title="Fantasy background generation">
+    Based on the story context, Cinemachine generates a fantasy background using **Nanobanana Pro**, an AI image generation system.
+    
+    **What happens:**
+    - Story context is converted to an image generation prompt
+    - Nanobanana Pro generates a high-quality background scene
+    - One background per scene (static, no temporal issues)
+    - Background matches the described setting and mood
+    
+    <Tip>
+      Because the background is generated once per scene and remains static, there are no temporal consistency issues or flickering between frames.
+    </Tip>
+  </Step>
+  
+  <Step title="Character animation: Eyes and mouth">
+    To bring the toy to life, Cinemachine adds expressive features:
+    
+    **Eyes:**
+    - Generated to match the toy's aesthetic
+    - Overlaid on the toy at the "face" position
+    - Track with the toy as it moves through frames
+    
+    **Mouth with lip sync:**
+    - Lip sync generated using **Wav2Lip** or **SadTalker**
+    - Mouth movements match the recorded dialogue
+    - Synced frame-by-frame to the audio
+    
+    **Subtle body animation:**
+    - Slight squash/stretch effects
+    - Breathing motion
+    - Bounces timed to speech energy
+    
+    <Info>
+      These animations are subtle but powerful—they transform a static toy cutout into a character that feels alive and expressive.
+    </Info>
+  </Step>
+  
+  <Step title="Final composite and movie output">
+    All elements are combined into the final animated movie:
+    
+    **Composition layers:**
+    1. Fantasy background (generated)
+    2. Toy cutout (segmented, tracked position)
+    3. Eyes overlay (tracking toy position)
+    4. Lip-synced mouth (tracking toy position)
+    5. Original audio (child's voice as dialogue)
+    
+    **Final output:**
+    - Polished video with toy performing in fantasy world
+    - No hands or original background visible
+    - Expressive character animation
+    - Professional-looking animated movie
+  </Step>
+</Steps>
+
+## Technology stack
+
+Here's what powers Cinemachine under the hood:
+
+| Component | Technology | Purpose |
+|-----------|------------|----------|
+| Voice agent | Gemini Live API | Real-time voice conversation to understand story |
+| Toy segmentation | SAM2 | Separate toy from hands and background |
+| Background generation | Nanobanana Pro | Create fantasy worlds from text descriptions |
+| Feature generation | Nanobanana | Generate eyes and expressive elements |
+| Lip sync | Wav2Lip / SadTalker | Sync mouth movements to dialogue audio |
+| Video processing | Optical flow, frame interpolation | Ensure smooth tracking and transitions |
+
+## Why this approach works
+
+Cinemachine's design makes difficult problems tractable:
+
+<CardGroup cols={2}>
+  <Card title="Fixed camera = clean segmentation" icon="video">
+    No camera movement means reliable background subtraction and precise toy tracking without motion blur complexity.
+  </Card>
+  <Card title="Generated backgrounds = no inpainting" icon="image">
+    Creating new backgrounds is easier than trying to preserve and repair original backgrounds after removing hands.
+  </Card>
+  <Card title="Voice interaction = natural UX" icon="microphone">
+    Kids describe stories naturally through conversation instead of complex UI forms.
+  </Card>
+  <Card title="Static BG per scene = temporal consistency" icon="clock">
+    One background per scene avoids the flickering and inconsistency issues of per-frame generation.
+  </Card>
+</CardGroup>
+
+## Advanced: Handling edge cases
+
+<AccordionGroup>
+  <Accordion title="What if hands overlap the toy completely?">
+    SAM2's segmentation is robust but not perfect. If hands completely cover the toy for extended periods, the tracking may lose the toy. Best practice: ensure the toy is visible in most frames, even if hands are touching it.
+  </Accordion>
+  
+  <Accordion title="How does Cinemachine handle multiple toys?">
+    The current pipeline focuses on single-character scenes for optimal quality. Multiple toy support is planned, where each toy would be segmented separately and can have independent animations and dialogue.
+  </Accordion>
+  
+  <Accordion title="Where should eyes and mouth be placed?">
+    The system can auto-detect likely face areas on toys, or children can specify through the voice agent ("The eyes go near the top" or "It's a dinosaur, so the mouth is at the front").
+  </Accordion>
+  
+  <Accordion title="What resolution and frame rate?">
+    Processing works best with 1080p video at 24-30fps. Higher resolutions increase processing time but can improve final quality for detailed toys.
+  </Accordion>
+</AccordionGroup>
+
+<Check>
+  Understanding the pipeline helps you make better creative choices. Now you know why the fixed camera matters, how AI brings toys to life, and what happens behind the scenes.
+</Check>

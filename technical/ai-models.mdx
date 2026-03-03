@@ -1,0 +1,372 @@
+---
+title: AI models
+description: Deep dive into the AI models powering Cinemachine's video transformation pipeline
+---
+
+Cinemachine leverages multiple state-of-the-art AI models to transform raw toy play footage into animated movies. This page documents the models used at each stage of the pipeline.
+
+## Technology stack
+
+| Component | Technology | Purpose |
+|---|---|---|
+| Voice Agent | Gemini Live API | Real-time voice interaction for story context |
+| Segmentation | SAM2 / GroundingDINO + SAM | Toy isolation and tracking |
+| Background Gen | Nanobanana Pro | Fantasy world image generation |
+| Eye/Feature Gen | Nanobanana | Targeted generation for character features |
+| Lip Sync | Wav2Lip / SadTalker | Audio-synchronized mouth animation |
+| Video Consistency | Frame interpolation, optical flow | Smooth frame-to-frame transitions |
+
+## Segmentation models
+
+Segmentation is critical for isolating toys from hands and background in each frame.
+
+### SAM2 (Segment Anything Model 2)
+
+**Primary segmentation and tracking model**
+
+SAM2 provides robust object segmentation with temporal tracking across video frames:
+
+```python
+# Example SAM2 usage for toy tracking
+from sam2 import SAM2VideoPredictor
+
+predictor = SAM2VideoPredictor(checkpoint="sam2_large.pt")
+
+# Initialize with first frame and prompt point on toy
+with torch.inference_mode():
+    state = predictor.init_state(video_path="toy_play.mp4")
+    _, _, masks = predictor.add_new_points(
+        state=state,
+        frame_idx=0,
+        obj_id=1,
+        points=[[toy_x, toy_y]],  # User clicks on toy
+        labels=[1]  # Foreground point
+    )
+    
+    # Propagate through all frames
+    for frame_idx, mask in predictor.propagate_in_video(state):
+        # Process each frame's mask
+        save_cutout(frame_idx, mask)
+```
+
+**Key capabilities:**
+- Zero-shot segmentation (no training required)
+- Temporal consistency across frames
+- Handles occlusions and partial visibility
+- Tracks object movement automatically
+
+**Challenges:**
+- Contact points between hands and toys can cause mask leakage
+- Requires mask refinement at hand-toy boundaries
+- May need erosion/dilation post-processing for clean edges
+
+### GroundingDINO + SAM
+
+**Alternative approach for text-prompted segmentation**
+
+Combines object detection with segmentation:
+
+1. **GroundingDINO** detects objects based on text prompts ("toy dinosaur", "action figure")
+2. **SAM** segments the detected object with high precision
+
+```python
+# Example GroundingDINO + SAM pipeline
+from groundingdino import GroundingDINO
+from segment_anything import SamPredictor
+
+# Detect toy with text prompt
+detector = GroundingDINO()
+boxes = detector.predict(
+    image=frame,
+    prompt="toy dinosaur",
+    threshold=0.5
+)
+
+# Segment detected toy
+sam = SamPredictor(checkpoint="sam_vit_h.pth")
+sam.set_image(frame)
+masks = sam.predict(box=boxes[0])
+```
+
+**Advantages:**
+- Text-based specification ("the green toy")
+- No manual point selection required
+- Can distinguish between multiple toys
+
+**Limitations:**
+- Requires accurate object detection first
+- Less temporal consistency than SAM2
+- May need per-frame processing
+
+## Image generation models
+
+Nanobanana Pro generates backgrounds and character features.
+
+### Nanobanana Pro
+
+**Background generation**
+
+Generates fantasy world backgrounds based on story context:
+
+```python
+# Example background generation
+from nanobanana import NanobananaProClient
+
+client = NanobananaProClient(api_key="...")
+
+# Voice agent provides context
+story_context = "A magical forest with glowing mushrooms and fairy lights"
+
+background = client.generate_image(
+    prompt=story_context,
+    aspect_ratio="16:9",
+    style="children's animation",
+    quality="high"
+)
+```
+
+**One-shot per scene approach:**
+- Background generated **once** at scene start
+- Static background eliminates temporal consistency issues
+- No need for video-to-video models
+- Fast and cost-effective
+
+<Note>
+Static backgrounds avoid the quality degradation and flickering common in video generation models.
+</Note>
+
+### Nanobanana (Standard)
+
+**Targeted feature generation**
+
+Generates eyes, mouths, and other character features:
+
+```python
+# Generate eyes matching toy aesthetic
+eyes = client.generate_feature(
+    prompt="cartoon eyes, friendly expression, matching {toy_color}",
+    reference_image=toy_cutout,
+    feature_type="eyes",
+    size=(128, 64)
+)
+
+# Generate mouth shapes for lip sync
+mouth_shapes = client.generate_phoneme_mouths(
+    reference_style=toy_cutout,
+    phonemes=["A", "E", "I", "O", "U", "M", "F"],
+    style="match_toy"
+)
+```
+
+**Feature generation challenges:**
+- Style consistency with toy appearance
+- Appropriate scale for toy size
+- Natural integration with toy material (plastic, fabric, etc.)
+
+## Voice interaction model
+
+### Gemini Live API
+
+**Real-time voice conversation**
+
+Gemini Live API enables natural voice interaction with kids:
+
+```javascript
+// Example voice agent setup
+import { GeminiLiveClient } from '@google/gemini-live';
+
+const client = new GeminiLiveClient({
+  apiKey: process.env.GEMINI_API_KEY,
+  model: 'gemini-2.0-flash-exp'
+});
+
+// Start conversational flow
+const session = await client.startSession({
+  systemPrompt: `You are a friendly creative assistant helping kids make 
+    movies with their toys. Ask about their story, characters, and settings.`,
+  
+  onResponse: (response) => {
+    // Extract story context
+    const setting = extractSetting(response);
+    const characters = extractCharacters(response);
+    
+    // Trigger background generation
+    generateBackground(setting);
+  }
+});
+
+await session.sendAudio(microphoneStream);
+```
+
+**Voice agent responsibilities:**
+- Gather story context (setting, characters, plot)
+- Determine background generation prompts
+- Help specify toy "face" locations
+- Guide the creative process
+
+**Design considerations:**
+- Child-friendly conversation style
+- Open-ended questions to encourage creativity
+- Clear confirmation of understanding
+- Fun, encouraging tone
+
+## Lip sync models
+
+Multiple options for audio-synchronized mouth animation.
+
+### Wav2Lip
+
+**Audio-driven lip synchronization**
+
+Wav2Lip generates accurate lip movements from audio:
+
+```python
+from wav2lip import Wav2Lip
+
+model = Wav2Lip(checkpoint="wav2lip_gan.pth")
+
+# Sync mouth to audio
+synced_video = model.generate(
+    face_frames=mouth_region_frames,  # Extracted mouth regions
+    audio=dialogue_audio,
+    fps=30
+)
+```
+
+**Characteristics:**
+- High accuracy lip sync
+- Works with any audio input
+- Requires face-like mouth region
+- May need adaptation for toy aesthetics
+
+### SadTalker
+
+**3D-aware talking face generation**
+
+SadTalker adds head motion alongside lip sync:
+
+```python
+from sadtalker import SadTalker
+
+model = SadTalker(checkpoint="sadtalker.pth")
+
+result = model.generate(
+    source_image=toy_with_face,
+    driven_audio=dialogue_audio,
+    still_mode=False,  # Allow head movement
+    expression_scale=1.0
+)
+```
+
+**Additional features:**
+- Natural head movements
+- Expression variation
+- More lifelike animation
+
+**Trade-offs:**
+- More computational cost
+- May introduce unwanted motion
+- Requires careful parameter tuning
+
+<Warning>
+Both Wav2Lip and SadTalker are designed for human faces. Adaptation may be needed for toy characters.
+</Warning>
+
+## Video consistency models
+
+Ensuring smooth frame-to-frame transitions.
+
+### Frame interpolation
+
+**Temporal smoothing**
+
+Frame interpolation creates intermediate frames for smoother motion:
+
+```python
+from film_interpolation import FILMInterpolator
+
+interpolator = FILMInterpolator()
+
+# Interpolate between frames for 60fps output
+smooth_frames = interpolator.interpolate(
+    frames=processed_frames,
+    target_fps=60,
+    source_fps=30
+)
+```
+
+**Use cases:**
+- Upsampling from 30fps to 60fps
+- Smoothing animation transitions
+- Reducing motion judder
+
+### Optical flow
+
+**Motion estimation and tracking**
+
+Optical flow tracks pixel movement between frames:
+
+```python
+import cv2
+
+# Calculate optical flow
+flow = cv2.calcOpticalFlowFarneback(
+    prev_frame_gray,
+    next_frame_gray,
+    None,
+    pyr_scale=0.5,
+    levels=3,
+    winsize=15,
+    iterations=3,
+    poly_n=5,
+    poly_sigma=1.2,
+    flags=0
+)
+
+# Use for motion-aware processing
+motion_compensated_frame = warp_frame(next_frame, flow)
+```
+
+**Applications:**
+- Eye/mouth placement tracking
+- Motion-aware compositing
+- Temporal consistency enforcement
+- Body animation alignment
+
+## Model selection considerations
+
+<Accordion title="Segmentation: SAM2 vs GroundingDINO+SAM">
+**SAM2 recommended for MVP:**
+- Better temporal consistency
+- Simpler integration
+- One-time user interaction (click on toy)
+
+**GroundingDINO+SAM for future:**
+- Text-based toy selection
+- Better multi-toy handling
+- No manual initialization
+</Accordion>
+
+<Accordion title="Lip sync: Wav2Lip vs SadTalker">
+**Start with Wav2Lip:**
+- More predictable results
+- Lighter computational cost
+- Easier to adapt for toys
+
+**Consider SadTalker for premium tier:**
+- More dynamic animation
+- Natural head movements
+- Higher production value
+</Accordion>
+
+<Accordion title="Image generation parameters">
+**Background generation:**
+- Resolution: 1920x1080 or higher
+- Style: Children's animation aesthetic
+- Consistency: Same style across scenes
+
+**Feature generation:**
+- Resolution: Match toy size in frame
+- Style: Match toy material and aesthetic
+- Variation: Multiple options for user choice
+</Accordion>

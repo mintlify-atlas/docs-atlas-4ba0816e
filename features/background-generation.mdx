@@ -1,0 +1,105 @@
+---
+title: Background generation
+description: Discover how Cinemachine uses Nanobanana Pro to create immersive fantasy worlds based on your child's story
+---
+
+## From playroom to fantasy world
+
+One of Cinemachine's most magical features is transforming the simple playroom background into rich, imaginative worlds. Whether your child's story takes place in an enchanted forest, a medieval castle, or outer space, the system generates custom backgrounds that match the narrative.
+
+<Card title="One-shot generation" icon="sparkles">
+  Each scene gets a single, carefully crafted background image. This approach ensures visual consistency throughout the scene while avoiding temporal artifacts that can occur with frame-by-frame generation.
+</Card>
+
+## How it works
+
+### Story context from voice interaction
+
+Before generating backgrounds, Cinemachine's voice agent has a conversation with your child about their story. Through natural dialogue, the system learns:
+
+- What kind of world the story takes place in
+- The mood and atmosphere (dark forest, sunny meadow, etc.)
+- Specific details your child wants to include
+- The overall narrative context
+
+<Info>
+  The voice agent uses the Gemini Live API to understand your child's creative vision and translate it into detailed visual descriptions for background generation.
+</Info>
+
+### Generating with Nanobanana Pro
+
+Cinemachine uses **Nanobanana Pro**, an advanced image generation model, to create the fantasy backgrounds. Based on the story context gathered from the voice conversation, the system:
+
+1. Constructs a detailed prompt describing the desired world
+2. Generates a high-quality background image
+3. Creates one background per scene (static throughout that scene)
+
+<Accordion title="What is Nanobanana Pro?">
+  Nanobanana Pro is a powerful image generation model optimized for creating detailed, coherent scenes. In Cinemachine, it's used not only for backgrounds but also for generating character features like eyes and mouths.
+</Accordion>
+
+### Static backgrounds for consistency
+
+Unlike approaches that regenerate the background for every frame, Cinemachine uses a **single background image per scene**. This design choice offers several benefits:
+
+- **No temporal consistency issues** — The background never flickers or shifts unexpectedly
+- **Faster processing** — Only one generation per scene instead of hundreds
+- **Predictable quality** — Each background is carefully crafted and can be reviewed
+- **Lower computational cost** — Makes the service more accessible and sustainable
+
+## Scene composition
+
+Once the background is generated, the segmented toy cutouts are composited onto it:
+
+```
+Generated Fantasy Background
+        +
+Tracked Toy Cutout (frame-by-frame)
+        =
+Toy moving through a fantasy world
+```
+
+The toy's position data from the segmentation phase ensures it moves naturally through the new environment, maintaining the original motion your child created during play.
+
+<Note>
+  Because the background is static and only the toy moves, the system never needs to solve the complex problem of hand inpainting or background restoration.
+</Note>
+
+## Quality and style
+
+Nanobanana Pro generates backgrounds that:
+
+- Match the aesthetic described in the story
+- Use appropriate color palettes for the mood
+- Include relevant environmental details (trees, buildings, stars, etc.)
+- Maintain visual clarity so the toy remains the focus
+
+<Warning>
+  **Scene transitions**: When your child's story moves from one location to another, the voice agent identifies this as a new scene. Each scene gets its own unique background, creating distinct visual chapters in the final movie.
+</Warning>
+
+## Technical considerations
+
+### One background per scene
+
+The system determines scene boundaries based on:
+
+- Explicit scene changes mentioned in the story
+- Changes in location or setting
+- Natural breaks in the narrative flow
+
+Each scene maintains its background throughout, even if the toy moves around within that scene.
+
+### Resolution and quality
+
+Backgrounds are generated at resolutions that match or exceed the original footage quality, ensuring the final composite looks crisp and professional.
+
+## What happens next
+
+After background generation and compositing:
+
+1. **Eyes and mouth overlays** are added to the toy
+2. **Lip sync** matches mouth movements to dialogue
+3. **Mild body animation** brings subtle life to the character
+
+The result is a fully realized animated movie where toys become characters in the worlds your child imagined.
